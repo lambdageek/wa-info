@@ -152,6 +152,16 @@ namespace WebAssemblyInfo
                 case Opcode.Prefix:
                     opStr = prefix + PrefixOpcode.ToString().ToLower().Replace("_", ".");
 
+                    switch (PrefixOpcode)
+                    {
+                        case PrefixOpcode.Memory_Init:
+                            opStr += $" {Idx}";
+                            break;
+                        case PrefixOpcode.Data_Drop:
+                            opStr += $" {Idx}";
+                            break;
+                    }
+
                     return $"{opStr}    [PF]";
                 case Opcode.Nop:
                 default:
