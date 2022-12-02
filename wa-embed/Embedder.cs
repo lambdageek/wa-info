@@ -1,5 +1,4 @@
-using System.Threading;
-using System.Threading.Tasks;
+using System.IO;
 
 namespace WebAssemblyInfo;
 
@@ -16,12 +15,20 @@ public class Embedder
         AssemblyFilePath = assemblyFile;
     }
 
-    public async Task Embed(CancellationToken cancellationToken = default)
+    public void Embed()
     {
         using var templateReader = new TemplateReader(TemplateModulePath);
 
-        var embeddingTemplate = await templateReader.ReadTemplate(cancellationToken);
+        using var assemblyStream = File.Open(AssemblyFilePath, FileMode.Open);
+        using var outputStream = File.Open(OutputModulePath, FileMode.Create);
+        using var assemblyReader = new BinaryReader(assemblyStream);
+        using var outputWriter = new BinaryWriter(outputStream);
 
-        await System.Threading.Tasks.Task.CompletedTask;
+        var templateWriter = new TemplateWriter(outputWriter, assemblyReader, templateReader);
+
+        templateWriter.Write();
+
+        outputWriter.Flush();
+
     }
 }

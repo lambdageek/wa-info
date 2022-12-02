@@ -1,6 +1,6 @@
 namespace WebAssemblyInfo.Idx;
 
-public record struct DataIdx(int Index)
+public record struct DataIdx(uint Index)
 {
-    public static implicit operator DataIdx(int index) => new DataIdx(index);
+    public static implicit operator DataIdx(uint index) => new(index);
 }

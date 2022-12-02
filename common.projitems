@@ -9,6 +9,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)\WasmMTOpcode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)\WasmSIMDOpcode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)\WasmStructs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)\WasmWriterUtils.cs" />
 
     </ItemGroup>
 </Project>

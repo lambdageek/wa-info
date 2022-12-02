@@ -11,6 +11,7 @@ namespace WebAssemblyInfo
     {
         readonly string DestinationPath;
         BinaryWriter Writer;
+        WasmWriterUtils WriterUtils { get; }
 
         public WasmRewriter(string source, string destination) : base(source)
         {
@@ -20,12 +21,12 @@ namespace WebAssemblyInfo
             DestinationPath = destination;
             var stream = File.Open(DestinationPath, FileMode.Create);
             Writer = new BinaryWriter(stream);
+            WriterUtils = new WasmWriterUtils(Writer);
         }
 
         protected override void ReadModule()
         {
-            Writer.Write(MagicWasm);
-            Writer.Write(1); // Version
+            WriterUtils.WriteWasmHeader(version: 1);
 
             base.ReadModule();
 
@@ -153,16 +154,7 @@ namespace WebAssemblyInfo
         }
 
         void WriteDataSegment(DataMode mode, byte[] data, Chunk chunk, int memoryOffset)
-        {
-            // data segment
-            WriteU32((uint)mode);
-
-            if (mode == DataMode.Active)
-                WriteConstI32Expr(memoryOffset);
-
-            WriteU32((uint)chunk.size);
-            Writer.Write(data, chunk.index, chunk.size);
-        }
+        => WriterUtils.WriteDataSegment(mode, new ReadOnlySpan<byte>(data, chunk.index, chunk.size), memoryOffset);
 
         public void DumpBytes(int count)
         {
@@ -178,75 +170,17 @@ namespace WebAssemblyInfo
             Writer.BaseStream.Position = pos;
         }
 
-        uint ConstI32ExprLen(int cn)
-        {
-            return 2 + I32Len(cn);
-        }
+        public uint ConstI32ExprLen(int value) => WasmWriterUtils.ConstI32ExprLen(value);
 
         // i32.const <cn>
-        void WriteConstI32Expr(int cn)
-        {
-            Writer.Write((byte)Opcode.I32_Const);
-            WriteI32(cn);
-            Writer.Write((byte)Opcode.End);
-        }
+        void WriteConstI32Expr(int cn) => WriterUtils.WriteConstI32Expr(cn);
 
-        public void WriteU32(uint n)
-        {
-            do
-            {
-                byte b = (byte)(n & 0x7f);
-                n >>= 7;
-                if (n != 0)
-                    b |= 0x80;
-                Writer.Write(b);
-            } while (n != 0);
-        }
+        void WriteU32(uint n) => WriterUtils.WriteU32(n);
 
-        public static uint U32Len(uint n)
-        {
-            uint len = 0u;
-            do
-            {
-                n >>= 7;
-                len++;
-            } while (n != 0);
+        static uint U32Len(uint n) => WasmWriterUtils.U32Len(n);
 
-            return len;
-        }
+        void WriteI32(int n) => WriterUtils.WriteI32(n);
 
-        public void WriteI32(int n)
-        {
-            var final = false;
-            do
-            {
-                byte b = (byte)(n & 0x7f);
-                n >>= 7;
-
-                if ((n == 0 && ((n & 0x80000000) == 0)) || (n == -1 && ((n & 0x80000000) == 0x80)))
-                    final = true;
-                else
-                    b |= 0x80;
-
-                Writer.Write(b);
-            } while (!final);
-        }
-
-        public static uint I32Len(int n)
-        {
-            var final = false;
-            var len = 0u;
-            do
-            {
-                n >>= 7;
-
-                if ((n == 0 && ((n & 0x80000000) == 0)) || (n == -1 && ((n & 0x80000000) == 0x80)))
-                    final = true;
-
-                len++;
-            } while (!final);
-
-            return len;
-        }
+        static uint I32Len(int n) => WasmWriterUtils.I32Len(n);
     }
 }

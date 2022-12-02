@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using WebAssemblyInfo;
 using WebAssemblyInfo.Idx;
 
 namespace WebAssemblyInfo.WebCIL;

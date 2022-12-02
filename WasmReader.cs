@@ -163,40 +163,10 @@ namespace WebAssemblyInfo
             dataSegments = new Data[count];
             for (uint i = 0; i < count; i++)
             {
-                dataSegments[i].Mode = (DataMode)ReadU32();
                 if (Program.Verbose2)
-                    Console.Write($"  data idx: {i} mode: {dataSegments[i].Mode}");
-                switch (dataSegments[i].Mode)
-                {
-                    case DataMode.ActiveMemory:
-                        dataSegments[i].MemIdx = ReadU32();
-                        if (Program.Verbose2)
-                            Console.Write($" memory index: {dataSegments[i].MemIdx}");
-                        goto case DataMode.Active;
-                    case DataMode.Active:
-                        (dataSegments[i].Expression, _) = ReadBlock();
-                        if (Program.Verbose2)
-                        {
-                            Console.Write(" offset expression:");
-                            if (dataSegments[i].Expression.Length == 1)
-                            {
-                                Console.Write($" {dataSegments[i].Expression[0]}");
-                            }
-                            else
-                            {
-                                Console.WriteLine();
-                                foreach (var instruction in dataSegments[i].Expression)
-                                    Console.Write(instruction.ToString(this).Indent("    "));
-                            }
-                        }
-                        break;
-                }
+                    Console.Write($"  data idx: {i}");
 
-                var length = ReadU32();
-                if (Program.Verbose2)
-                    Console.WriteLine($" length: {length}");
-
-                dataSegments[i].Content = Reader.ReadBytes((int)length);
+                ReadDataSegment(ref dataSegments[i]);
             }
         }
 
@@ -417,12 +387,7 @@ namespace WebAssemblyInfo
 
             for (int i = 0; i < count; i++)
             {
-                exports[i].Name = ReadString();
-                exports[i].Desc = (ExportDesc)Reader.ReadByte();
-                exports[i].Idx = ReadU32();
-
-                if (Program.Verbose2)
-                    Console.WriteLine($"  {exports[i]}");
+                ReadExport(ref exports[i]);
             }
         }
 
@@ -454,11 +419,6 @@ namespace WebAssemblyInfo
                 if (Program.Verbose2)
                     Console.WriteLine($"  {imports[i]}");
             }
-        }
-
-        string ReadString()
-        {
-            return Encoding.UTF8.GetString(Reader.ReadBytes((int)ReadU32()));
         }
 
         protected Function[]? functions;

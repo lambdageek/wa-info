@@ -40,7 +40,7 @@ namespace WebAssemblyInfo
             ReadModule();
         }
 
-        protected byte[] MagicWasm = { 0x0, 0x61, 0x73, 0x6d };
+        internal static readonly byte[] MagicWasm = { 0x0, 0x61, 0x73, 0x6d };
 
         protected virtual void ReadModule()
         {
@@ -60,7 +60,7 @@ namespace WebAssemblyInfo
                 ReadSection();
         }
 
-        protected enum SectionId
+        public enum SectionId
         {
             Custom = 0,
             Type,
@@ -78,7 +78,7 @@ namespace WebAssemblyInfo
             Tag,
         }
 
-        protected struct SectionInfo
+        public struct SectionInfo
         {
             public SectionId id;
             public UInt32 size;
@@ -303,6 +303,60 @@ namespace WebAssemblyInfo
             ma.Offset = ReadU32();
 
             return ma;
+        }
+
+        protected string ReadString()
+        {
+            return Encoding.UTF8.GetString(Reader.ReadBytes((int)ReadU32()));
+        }
+
+        private protected void ReadExport(ref Export export)
+        {
+            export.Name = ReadString();
+            export.Desc = (ExportDesc)Reader.ReadByte();
+            export.Idx = ReadU32();
+
+            if (Program.Verbose2)
+                Console.WriteLine($"  {export}");
+        }
+
+        private protected void ReadDataSegment(ref Data dataSegment)
+        {
+            dataSegment.Mode = (DataMode)ReadU32();
+            if (Program.Verbose2)
+                Console.Write($" mode: {dataSegment.Mode}");
+            switch (dataSegment.Mode)
+            {
+                case DataMode.ActiveMemory:
+                    dataSegment.MemIdx = ReadU32();
+                    if (Program.Verbose2)
+                        Console.Write($" memory index: {dataSegment.MemIdx}");
+                    goto case DataMode.Active;
+                case DataMode.Active:
+                    (dataSegment.Expression, _) = ReadBlock();
+                    if (Program.Verbose2)
+                    {
+                        Console.Write(" offset expression:");
+                        if (dataSegment.Expression.Length == 1)
+                        {
+                            Console.Write($" {dataSegment.Expression[0]}");
+                        }
+                        else
+                        {
+                            Console.WriteLine();
+                            foreach (var instruction in dataSegment.Expression)
+                                Console.Write(instruction.ToString(Context).Indent("    "));
+                        }
+                    }
+                    break;
+            }
+
+            var length = ReadU32();
+            if (Program.Verbose2)
+                Console.WriteLine($" length: {length}");
+
+            dataSegment.Content = Reader.ReadBytes((int)length);
+
         }
 
     }

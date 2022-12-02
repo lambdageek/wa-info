@@ -320,8 +320,8 @@ namespace WebAssemblyInfo
 
         public string ToString(int idx)
         {
-            string varName = idx == -1 ? null : $" ${idx}";
-            string count = Count == 1 ? null : $" {Count}";
+            string varName = idx == -1 ? string.Empty : $" ${idx}";
+            string count = Count == 1 ? string.Empty : $" {Count}";
             return $"local{varName}{count} {Type}";
         }
 
@@ -339,7 +339,7 @@ namespace WebAssemblyInfo
         public UInt32 Size;
         public long Offset;
 
-        public string ToString(IWasmReaderContext reader, int startIdx)
+        public string ToString(IWasmReaderContext? reader, int startIdx)
         {
             StringBuilder sb = new();
 
