@@ -15,6 +15,8 @@ namespace WebAssemblyInfo
         static public bool Verbose { get { return VerboseLevel > 0; } }
         static public bool Verbose2 { get { return VerboseLevel > 1; } }
 
+        public static bool PrintOffsets => false;
+
         public static bool DataSectionAutoSplit = false;
         public static string DataSectionFile = "";
         public static DataMode DataSectionMode = DataMode.Active;

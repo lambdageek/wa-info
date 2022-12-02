@@ -1,0 +1,14 @@
+<Project>
+    <ItemGroup>
+        <Compile Include="$(MSBuildThisFileDirectory)\Extensions.cs"/>
+    <Compile Include="$(MSBuildThisFileDirectory)\WasmData.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)\WasmOpcode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)\IWasmReaderContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)\WasmReaderBase.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)\WasmReaderBase.ReadInstruction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)\WasmMTOpcode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)\WasmSIMDOpcode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)\WasmStructs.cs" />
+
+    </ItemGroup>
+</Project>

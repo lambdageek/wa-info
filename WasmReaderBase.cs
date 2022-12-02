@@ -7,7 +7,7 @@ using NameMap = System.Collections.Generic.Dictionary<System.UInt32, string>;
 
 namespace WebAssemblyInfo
 {
-    public abstract class WasmReaderBase
+    public abstract partial class WasmReaderBase : IDisposable
     {
         public readonly BinaryReader Reader;
         public UInt32 Version { get; private set; }
@@ -21,6 +21,18 @@ namespace WebAssemblyInfo
             Path = path;
             var stream = File.Open(Path, FileMode.Open);
             Reader = new BinaryReader(stream);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+                Reader.Dispose();
         }
 
         public void Parse()
@@ -77,6 +89,8 @@ namespace WebAssemblyInfo
         protected Dictionary<SectionId, List<SectionInfo>> sectionsById = new();
 
         protected abstract void ReadSection(SectionInfo section);
+
+        protected virtual IWasmReaderContext? Context => null;
 
         void ReadSection()
         {
@@ -161,5 +175,135 @@ namespace WebAssemblyInfo
 
             return value;
         }
+
+        private protected (Instruction[], Opcode) ReadBlock(Opcode end = Opcode.End)
+        {
+            List<Instruction> instructions = new();
+            Opcode b;
+            do
+            {
+                b = (Opcode)Reader.ReadByte();
+                //Console.WriteLine($"    opcode: {b}");
+
+                if (b == Opcode.End || b == end)
+                    break;
+
+                instructions.Add(ReadInstruction(b));
+            } while (true);
+
+            return (instructions.ToArray(), b);
+        }
+
+        private protected void ReadCode(ref Code code)
+        {
+            Reader.BaseStream.Seek(code.Offset, SeekOrigin.Begin);
+
+            if (Program.Verbose2)
+                Console.WriteLine($"  code[{code.Idx}]: {code.Size} bytes");
+
+            var vecSize = ReadU32();
+            code.Locals = new LocalsBlock[vecSize];
+
+            if (Program.Verbose2)
+                Console.WriteLine($"    locals blocks count {vecSize}");
+
+            for (var j = 0; j < vecSize; j++)
+            {
+                code.Locals[j].Count = ReadU32();
+                ReadValueType(ref code.Locals[j].Type);
+
+                // Console.WriteLine($"    locals {j} count: {Locals[j].Count} type: {Locals[j].Type}");
+            }
+
+            // read expr
+            (code.Instructions, _) = ReadBlock();
+
+            if (Program.Verbose2)
+                Console.WriteLine(code.ToString().Indent("    "));
+        }
+
+        private protected bool EnsureCodeReaded(ref Code code)
+        {
+            if (code.Instructions == null)
+            {
+                ReadCode(ref code);
+            }
+            return true;
+        }
+        private protected void ReadGlobal(ref Global g)
+        {
+            ReadValueType(ref g.Type);
+            if (Program.Verbose2)
+                Console.Write($" type: {g.Type}");
+
+            g.Mutability = (Mutability)Reader.ReadByte();
+            if (Program.Verbose2)
+                Console.Write($" mutability: {g.Mutability.ToString().ToLower()}");
+
+            (g.Expression, _) = ReadBlock();
+
+            if (Program.Verbose2)
+            {
+                if (g.Expression.Length == 1)
+                {
+                    Console.Write($" init expression: {g.Expression[0]}");
+                }
+                else
+                {
+                    Console.WriteLine(" init expression:");
+                    foreach (var instruction in g.Expression)
+                        Console.Write(instruction.ToString(Context).Indent("    "));
+                }
+            }
+        }
+
+        private protected void ReadValueType(ref ValueType vt)
+        {
+            var b = Reader.ReadByte();
+            vt.IsRefenceType = b <= 0x70;
+            vt.IsVectorType = b == 0x7b;
+            vt.value = b;
+        }
+
+        BlockType ReadBlockType()
+        {
+            BlockType blockType = new();
+            byte b = Reader.ReadByte();
+
+            switch (b)
+            {
+                case 0x40:
+                    blockType.Kind = BlockTypeKind.Empty;
+                    break;
+                case (byte)NumberType.f32:
+                case (byte)NumberType.i32:
+                case (byte)NumberType.f64:
+                case (byte)NumberType.i64:
+                case (byte)ReferenceType.ExternRef:
+                case (byte)ReferenceType.FuncRef:
+                    blockType.Kind = BlockTypeKind.ValueType;
+                    Reader.BaseStream.Seek(-1, SeekOrigin.Current);
+                    ReadValueType(ref blockType.ValueType);
+                    break;
+                default:
+                    blockType.Kind = BlockTypeKind.TypeIdx;
+                    Reader.BaseStream.Seek(-1, SeekOrigin.Current);
+                    blockType.TypeIdx = (UInt32)ReadI64();
+                    break;
+            }
+
+            return blockType;
+        }
+
+        MemArg ReadMemArg()
+        {
+            MemArg ma = new();
+
+            ma.Align = ReadU32();
+            ma.Offset = ReadU32();
+
+            return ma;
+        }
+
     }
 }

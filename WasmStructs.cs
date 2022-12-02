@@ -35,7 +35,7 @@ namespace WebAssemblyInfo
         public byte[] SIMDImmByteArray;
         public byte SIMDImmLaneIdx;
 
-        public string ToString(WasmReader? reader)
+        public string ToString(IWasmReaderContext? reader)
         {
             var prefix = Program.PrintOffsets ? $"0x{Offset:x8}: " : null;
             var opStr = prefix + Opcode.ToString().ToLower().Replace("_", ".");
@@ -169,7 +169,7 @@ namespace WebAssemblyInfo
             }
         }
 
-        static string FunctionName(UInt32 idx, WasmReader? reader)
+        static string FunctionName(UInt32 idx, IWasmReaderContext? reader)
         {
             if (reader == null)
                 return $"[{idx.ToString()}]";
@@ -177,7 +177,7 @@ namespace WebAssemblyInfo
             return reader.GetFunctionName(idx, false);
         }
 
-        static string FunctionType(UInt32 idx, WasmReader? reader)
+        static string FunctionType(UInt32 idx, IWasmReaderContext? reader)
         {
             if (reader == null)
                 return $"[{idx.ToString()}]";
@@ -185,7 +185,7 @@ namespace WebAssemblyInfo
             return reader.FunctionType(idx);
         }
 
-        static string GlobalName(UInt32 idx, WasmReader? reader)
+        static string GlobalName(UInt32 idx, IWasmReaderContext? reader)
         {
             if (reader == null)
                 return $"${idx.ToString()}";
@@ -198,7 +198,7 @@ namespace WebAssemblyInfo
             return ToString(null);
         }
 
-        static string BlockToString(Instruction[] instructions, WasmReader? reader)
+        static string BlockToString(Instruction[] instructions, IWasmReaderContext? reader)
         {
             if (instructions == null || instructions.Length < 1)
                 return "";
@@ -339,51 +339,8 @@ namespace WebAssemblyInfo
         public UInt32 Size;
         public long Offset;
 
-        void ReadCode(WasmReader reader)
+        public string ToString(IWasmReaderContext reader, int startIdx)
         {
-            reader.Reader.BaseStream.Seek(Offset, SeekOrigin.Begin);
-
-            if (Program.Verbose2)
-                Console.WriteLine($"  code[{Idx}]: {Size} bytes");
-
-            var vecSize = reader.ReadU32();
-            Locals = new LocalsBlock[vecSize];
-
-            if (Program.Verbose2)
-                Console.WriteLine($"    locals blocks count {vecSize}");
-
-            for (var j = 0; j < vecSize; j++)
-            {
-                Locals[j].Count = reader.ReadU32();
-                reader.ReadValueType(ref Locals[j].Type);
-
-                // Console.WriteLine($"    locals {j} count: {Locals[j].Count} type: {Locals[j].Type}");
-            }
-
-            // read expr
-            (Instructions, _) = reader.ReadBlock();
-
-            if (Program.Verbose2)
-                Console.WriteLine(ToString().Indent("    "));
-        }
-
-        public bool EnsureCodeReaded(WasmReader? reader)
-        {
-            if (Instructions == null)
-            {
-                if (reader == null)
-                    return false;
-
-                ReadCode(reader);
-            }
-
-            return true;
-        }
-
-        public string ToString(WasmReader? reader, int startIdx)
-        {
-            EnsureCodeReaded(reader);
-
             StringBuilder sb = new();
 
             foreach (LocalsBlock lb in Locals)
