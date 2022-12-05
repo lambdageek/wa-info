@@ -89,16 +89,81 @@ public class WasmWriterUtils
         return 2 + I32Len(cn);
     }
 
-    public void WriteDataSegment(DataMode mode, ReadOnlySpan<byte> data, int memoryOffset)
+    internal void WriteDataSegment(DataMode mode, ReadOnlySpan<byte> data, ReadOnlySpan<Instruction> memoryOffset)
     {
         // data segment
         WriteU32((uint)mode);
 
-        if (mode == DataMode.Active)
-            WriteConstI32Expr(memoryOffset);
+        switch (mode)
+        {
+            case DataMode.Active:
+                WriteBlock(memoryOffset);
+                break;
+            case DataMode.ActiveMemory:
+                throw new NotImplementedException("TODO: implement writing ActiveMemory data segments");
+            case DataMode.Passive:
+                break;
+        }
 
         WriteU32((uint)data.Length);
         Writer.Write(data);
     }
+
+    public void WriteDataSegment(DataMode mode, ReadOnlySpan<byte> data, int memoryOffset)
+    {
+        WriteDataSegment(mode, data, I32ConstExpr(memoryOffset));
+    }
+
+    private static Instruction[] I32ConstExpr(int n)
+    {
+        return new Instruction[] { new Instruction { Opcode = Opcode.I32_Const, I32 = n } };
+    }
+
+    internal void WriteDataSegment(Data segment)
+    {
+        WriteDataSegment(segment.Mode, segment.Content, segment.Expression);
+
+    }
+
+    public void WriteSectionHeader(WasmReaderBase.SectionId id, uint size)
+    {
+        Writer.Write((byte)id);
+        WriteU32(size);
+    }
+
+    internal void WriteBlock(ReadOnlySpan<Instruction> body)
+    {
+        if (body.Length != 1)
+            throw new NotImplementedException("TODO: implement WriteBlock for more than 1 instruction");
+
+        WriteInstruction(body[0]);
+        WriteEnd();
+    }
+
+    internal void WriteInstruction(Instruction instruction)
+    {
+        switch (instruction.Opcode)
+        {
+            case Opcode.I32_Const:
+                Writer.Write((byte)instruction.Opcode);
+                WriteI32((int)instruction.I32);
+                break;
+            default:
+                throw new NotImplementedException($"TODO: implement WriteInstruction for {instruction}");
+        }
+    }
+
+    internal void WriteEnd()
+    {
+        Writer.Write((byte)Opcode.End);
+    }
+
+    internal void WriteGlobal(Global global)
+    {
+        Writer.Write(global.Type.value);
+        Writer.Write((byte)global.Mutability);
+        WriteBlock(global.Expression);
+    }
+
 
 }

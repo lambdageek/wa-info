@@ -13,7 +13,7 @@ public class Program
 
         string inFile = "data/template.wasm";
         string outFile = "out.wasm";
-        string asmFile = "sample.dll";
+        string asmFile = "/tmp/sample/bin/Debug/net7.0/sample.dll";
 
         new Embedder(inFile, outFile, asmFile).Embed();
     }

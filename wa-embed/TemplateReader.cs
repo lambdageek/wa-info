@@ -18,13 +18,15 @@ public class TemplateReader : WasmReaderBase
 
     private IReadOnlyCollection<Data> _dataSegments;
 
-    IReadOnlyCollection<Global> Globals => _globals;
+    internal IReadOnlyCollection<Global> Globals => _globals;
 
     IReadOnlyCollection<Export> Exports => _exports;
 
-    IReadOnlyCollection<Data> DataSegments => _dataSegments;
+    internal IReadOnlyCollection<Data> DataSegments => _dataSegments;
 
     internal IReadOnlyCollection<SectionInfo> Sections => _sections;
+
+    internal EmbeddingTemplate Template => _template;
 
     public TemplateReader(string path) : base(path)
     {

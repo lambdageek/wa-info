@@ -24,6 +24,8 @@ public class Embedder
         using var assemblyReader = new BinaryReader(assemblyStream);
         using var outputWriter = new BinaryWriter(outputStream);
 
+        templateReader.ReadTemplate();
+
         var templateWriter = new TemplateWriter(outputWriter, assemblyReader, templateReader);
 
         templateWriter.Write();
