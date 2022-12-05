@@ -21,12 +21,13 @@ public class Embedder
 
         using var assemblyStream = File.Open(AssemblyFilePath, FileMode.Open);
         using var outputStream = File.Open(OutputModulePath, FileMode.Create);
-        using var assemblyReader = new BinaryReader(assemblyStream);
         using var outputWriter = new BinaryWriter(outputStream);
 
         templateReader.ReadTemplate();
 
-        var templateWriter = new TemplateWriter(outputWriter, assemblyReader, templateReader);
+        var templateWriter = new TemplateWriter(outputWriter, AssemblyFilePath, assemblyStream, templateReader);
+
+        templateWriter.ReplaceTemplateContent();
 
         templateWriter.Write();
 
